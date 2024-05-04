@@ -17,26 +17,22 @@ struct Options {
 	/// Add a glob the file names must match to be edited.
 	#[arg(short, long)]
 	glob: Option<String>,
+
+	/// Treat all files as ASCII text.
+	#[arg(short = 'a', long = "text")]
+	text: bool,
 	
-	/// Max depth in a directory tree.
-	#[arg(short = 'l', long = "level", default_value_t = -1)]
-	depth: i32,
+	/// Print byte offset with the output lines.
+	#[arg(short = 'b', long = "byte-offset")]
+	byte_offset: bool,
 
 	/// Remove the file name from the output.
 	#[arg(short = 'h', long = "no-filename")]
 	no_filename: bool,
 
-	/// Print byte offset with the output lines.
-	#[arg(short = 'b', long = "byte-offset")]
-	byte_offset: bool,
-}
-
-fn is_hidden(entry: &DirEntry) -> bool {
-    entry
-        .file_name()
-        .to_str()
-        .map(|s| s.starts_with("."))
-        .unwrap_or(false)
+	/// Remove the line numbers from the output.
+	#[arg(short = 'N', long = "no-line-number")]
+	no_filename: bool,
 }
 
 fn main() {
@@ -46,10 +42,7 @@ fn main() {
     let walker = WalkDir::new(String::from(opts.path)).into_iter();
 
     walker
-        .filter_entry(|e| is_hidden(e) || !opts.include_hidden)
         .filter_map(Result::ok)
-        .filter(|e| pattern.matches(e.path().to_string_lossy().as_ref()))
-        .filter(|e| opts.depth < 0 || e.depth() <= opts.depth as usize)
         .filter(|e| !e.path().is_dir())
         .par_bridge()
         .for_each(|e| process_file(e, &re, &opts.replacement, opts.verbose, opts.to_stdout));
