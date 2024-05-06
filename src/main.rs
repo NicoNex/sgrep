@@ -2,9 +2,10 @@ use clap::Parser;
 use glob::Pattern;
 use rayon::prelude::*;
 use regex::Regex;
-// use std::fs::File;
-// use std::io::{self, Read, Write};
+use std::fs::File;
+use std::io::{BufReader, Read};
 use walkdir::{DirEntry, WalkDir};
+use std::path::Path;
 
 #[derive(Parser, Debug)]
 #[command(about, long_about = None)]
@@ -32,7 +33,46 @@ struct Options {
 
 	/// Remove the line numbers from the output.
 	#[arg(short = 'N', long = "no-line-number")]
-	no_filename: bool,
+	no_line_number: bool,
+}
+
+fn process_file(entry: DirEntry, re: &regex::Regex, with_filename: bool, byte_offset: bool) {
+	let path = entry.path();
+
+	if let Ok(file) = File::open(&path) {
+		let Ok(lines) = BufReader::new(file).lines();
+
+		let mut lineno = 0;
+
+		for line in reader.lines() {
+			lineno += 1;
+
+			match line {
+				Ok(line_cnt) => {
+					if re.is_match(&line_cnt) {
+						println!("{}: {}", lineno, line_cnt);
+					}
+				},
+				Err(_) => (),
+			}
+
+		}
+
+		if let Err(_) = file.read_to_string(&mut cnt) {
+			return;
+		}
+
+		for cap in re.find_iter(cnt) {
+
+		}
+
+	}
+}
+
+fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
+where P: AsRef<Path>, {
+    let file = File::open(filename)?;
+    Ok(BufReader::new(file).lines())
 }
 
 fn main() {
@@ -43,9 +83,10 @@ fn main() {
 
     walker
         .filter_map(Result::ok)
+        .filter(|e| pattern.matches(e.path().to_string_lossy().as_ref()))
         .filter(|e| !e.path().is_dir())
         .par_bridge()
-        .for_each(|e| process_file(e, &re, &opts.replacement, opts.verbose, opts.to_stdout));
+        .for_each(|e| process_file(e, &re, !opts.no_filename, opts.byte_offset));
 
 	println!("Hello, world!");
 }
